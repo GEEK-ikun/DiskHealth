@@ -1,0 +1,44 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 语法检查
+        run: python -m py_compile app.py core\health.py core\smart_engine.py ui\app_ui.py
+
+      - name: 演示模式自检（不读真实磁盘，不需要管理员）
+        shell: pwsh
+        run: |
+          python app.py --demo --selftest
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            if (Test-Path launch.log) { Get-Content launch.log }
+            exit $code
+          }
+
+      - name: 隐私红线检查（代码里不允许出现网络调用）
+        shell: pwsh
+        run: |
+          $patterns = 'import socket|import urllib|from urllib|urlopen|http\.client|import requests'
+          $hit = Get-ChildItem -Path . -Recurse -File -Include *.py |
+                 Select-String -Pattern $patterns -ErrorAction SilentlyContinue
+          if ($hit) {
+            Write-Output "发现网络相关代码，这与 README 里「不联网」的承诺冲突："
+            $hit | ForEach-Object { Write-Output ("  {0}:{1}  {2}" -f $_.Path, $_.LineNumber, $_.Line.Trim()) }
+            exit 1
+          }
+          Write-Output "未发现网络调用。"

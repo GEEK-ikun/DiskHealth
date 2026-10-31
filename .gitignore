@@ -1,0 +1,26 @@
+# 运行期产物
+launch.log
+*.log
+
+# 打包产物（不随源码分发）
+dist/
+build/
+*.spec
+installer/
+Setup*.exe
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 编辑器 / 系统
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
